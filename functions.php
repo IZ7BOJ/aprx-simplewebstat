@@ -436,7 +436,7 @@ $rxframespermin = $count / (($time1 - $time2) / 60);
 //echo $count."<br>";//debug line
 //echo $index1."<br>";//debug line
 //echo $index2."<br>";//debug line
-return(rxframespermin);
+return $rxframespermin;
 }
 
 //maybe it's possible to merge these two functions...
@@ -469,7 +469,7 @@ $txframespermin = $count / (($time1 - $time2) / 60);
 //echo $count."<br>"; // debug line
 //echo $index1."<br>"; //debug line
 //echo $index2."<br>"; //debug line
-return(txframespermin);
+return $txframespermin;
 }
 
 ?>
