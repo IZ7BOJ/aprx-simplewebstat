@@ -1,4 +1,14 @@
 <?php
+/******************************************************************************************
+This file is a part of SIMPLE WEB STATICSTICS GENERATOR FROM APRX LOG FILE
+It's very simple and small APRX statictics generator in PHP. It's parted to smaller files and they will work independent from each other (but you always need chgif.php).
+This script may have a lot of bugs, problems and it's written in very non-efficient way without a lot of good programming rules. But it works for me.
+Author: Peter SQ8VPS, sq8vps[--at--]gmail.com & Alfredo IZ7BOJ
+You can modify this program, but please give a credit to original authors. Program is free for non-commercial use only.
+(C) Peter SQ8VPS & Alfredo IZ7BOJ 2017-2018
+
+*******************************************************************************************/
+
 function stationparse($frame) //function for parsing station information
 {
 	global $receivedstations;
@@ -291,6 +301,7 @@ function frameparse($frame)
 	global $othertime;
 	global $mice;
 	global $bearing;
+	global $device;
 
 		$packet = substr($frame, 36); //get only frame, without interface call, date etc.
 		$aa = explode(">", $packet); //get the callsign
@@ -300,8 +311,8 @@ function frameparse($frame)
 			
 			$noofframes++;
 			if($posframefound and $otherframefound) return;
-			$bb = explode(":", $packet); //get only info field, so everything after : separator
-			
+			$bb = explode(":", $packet,2); //get only info field, so everything after : separator
+
 			$bb = str_replace("<0x1c>", chr(28), $bb); //replace unprintable characters written as <0xAA> with it's real value
 			$bb = str_replace("<0x1d>", chr(29), $bb); //replace unprintable characters written as <0xAA> with it's real value
 			$bb = str_replace("<0x1e>", chr(30), $bb); //replace unprintable characters written as <0xAA> with it's real value
@@ -309,7 +320,7 @@ function frameparse($frame)
 			$bb = str_replace("<0x7f>", chr(127), $bb); //replace unprintable characters written as <0xAA> with it's real value
 			
 			$dd = substr($bb[1], 0); //i have no idea, but i must do this, because without this there are some problems
-							
+
 			if(($dd[0] === "@") or ($dd[0] === "!") or ($dd[0] === "=") or ($dd[0] === "/") or (ord($dd[0]) === 96) or (ord($dd[0]) === 39)) //if it's a frame with position or Mic-E position	
 			{
 				
@@ -400,12 +411,13 @@ function frameparse($frame)
 				
 				$otherdate = substr($frame, 0, 10); //extract date
 				$othertime = substr($frame, 11, 8); //extract time
-				
+ 				
 				$otherframefound = 1; //newest beacon frame found
 			}
-		}
 
-}
+	} //close if aa=call
+
+} //close frameparse function
 
 //function for load calc
 
@@ -422,21 +434,22 @@ while (($index1<$lines)AND(!((strpos($logfile[$lines - $index1],$callraw." R"))O
         $index1++;
         }
 $time1 = strtotime(substr($logfile[$lines - $index1], 0, 19));
+
 $index2=$index1+1;
 
-//go back to last-20  received packets and take time
+//go back to last-20  received packets and take time 
 while (($index2<$lines)AND($count<19)) {
         if((strpos($logfile[$lines - $index2],$callraw." R"))OR(strpos($logfile[$lines - $index2],$callraw." d"))) {
                 $time2 = strtotime(substr($logfile[$lines - $index2], 0, 19));
                 $count++;
                 }
-        $index2++;
+	$index2++;
 }
 $rxframespermin = $count / (($time1 - $time2) / 60);
-//echo $count."<br>";//debug line
-//echo $index1."<br>";//debug line
-//echo $index2."<br>";//debug line
-return(rxframespermin);
+//echo $count."<br>";//debug line 
+//echo $index1."<br>";//debug line 
+//echo $index2."<br>";//debug line 
+return $rxframespermin;
 }
 
 //maybe it's possible to merge these two functions...
@@ -469,7 +482,130 @@ $txframespermin = $count / (($time1 - $time2) / 60);
 //echo $count."<br>"; // debug line
 //echo $index1."<br>"; //debug line
 //echo $index2."<br>"; //debug line
-return(txframespermin);
+return $txframespermin;
 }
+
+function device() {
+	global $mice;
+	global $comment;
+	global $lastpath;
+	global $device;
+
+	$tocall = substr($lastpath,0,strpos($lastpath,","));
+
+	if ($mice==0) {
+
+	//standard device parsing
+	$tocfile = file("./tocalls.txt"); //read log file
+	$linesintocfile = count($tocfile);
+	$match=0;
+	$w=0; //number of wildcards. Try exact match first
+	while (($match!==1)AND($w<=3)){
+		$toclines=0;
+		$tocall2=substr($tocall,0,strlen($tocall)-$w); //cut destination call from lastpath
+				while ($toclines < $linesintocfile) { //try exact match first, then 1,2 or 3 wildcards
+						$tocline=$tocfile[$toclines];
+						$toc = substr($tocline,6,6);
+						if((strpos($toc, $tocall2.str_repeat("x",$w)) !== false)OR(strpos($toc, $tocall2.str_repeat("n",$w)!== false))OR(strpos($toc, $tocall2.str_repeat("y",$w)) !== false)) {								$match=1;
+								break;
+								}
+						$toclines++;
+						}
+		$w++;
+		}
+	if ($match==1) {
+		if (strpos($tocall,"APRX")!== 0) { //special case for APRX
+			$device=substr($tocline, 14, strlen($tocline)-14);
+		}
+		else {
+				if(substr($tocall,4,2)>40) {
+				$device="APRSMax";
+				}
+				else {
+				$device="APRX".substr($tocall,4,1).".".substr($tocall,5,1);
+				}
+
+		}
+	}
+
+
+	//check special cases at the end (wildcards in the middle of tocall)
+	if (substr($tocall,0,2).substr($tocall,5,1)=="APD") {
+		$device="Painter Engineering uSmartDigi D-Gate DSTAR Gateway";
+		$match=1;
+		}
+	if (substr($tocall,0,2).substr($tocall,5,1)=="APU") {
+		$device="Painter Engineering uSmartDigi D-Gate Digipeater";
+		$match=1;
+		}
+	if ($match==0) {
+		$device="Unknown";
+		}
+
+	}// close non mic-e
+	else  {
+	// mice non legacy
+	$micefile = file("./mice.txt"); //read log file
+	$linesinmicefile = count($micefile);
+	$match=0;
+	$micelines=0;
+
+	$micesymbol=substr($comment,strlen($comment)-3,2); // last character is space, must be deleted
+	while ($micelines < $linesinmicefile) { //read line by line
+					$miceline = $micefile[$micelines];
+					if (strpos(substr($miceline,0,2), $micesymbol)!==false) {
+							$match=1;
+							break;
+							}
+					$micelines++;
+					}
+
+	if ($match==1) {
+			$device=(substr($miceline, 3, strlen($miceline)-3));
+			}
+	else {
+			// mice legacy
+
+			$miceoldfile = file("./miceold.txt"); //read log file
+			$linesinmiceoldfile = count($miceoldfile);
+			$match=0;
+			$miceoldlines=0;
+			$miceold1=substr($comment,0,1);
+			$miceold2=substr($comment,strlen($comment)-2,1);
+
+			//match exact
+			while ($miceoldlines < $linesinmiceoldfile) { //read line by line
+							$miceoldline = $miceoldfile[$miceoldlines];
+									if ((strpos(substr($miceoldline,0,1), $miceold1)!==false)AND(strpos(substr($miceoldline,2,1), $miceold2)!==false)) {
+									$match=1;
+									break;
+									}
+							$miceoldlines++;
+							}
+
+			if ($match==0){
+
+			// match 1st char
+			$miceoldlines=0;
+			while ($miceoldlines < $linesinmiceoldfile) { //read line by line
+							$miceoldline = $miceoldfile[$miceoldlines];
+							if ((strpos(substr($miceoldline,0,1), $miceold1)!==false)) {
+									$match=1;
+									break;
+									}
+							$miceoldlines++;
+							}
+			}
+
+			if ($match==1) {
+					$device=(substr($miceoldline, 4, strlen($miceoldline)-4));
+					}
+			else {
+			$device="Unknown";
+			}
+
+		}// close mic-e legacy
+	}//close mic-e non legacy
+} //close function
 
 ?>
