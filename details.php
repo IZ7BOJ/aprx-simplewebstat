@@ -66,7 +66,9 @@ if(isset($_GET['getcall']) && ($_GET['getcall'] != ""))
 	$lines = $linesinlog - 1;
 	while ($lines > 0) { //read line by line but starting from the newest frame!
 		$line = $logfile[$lines];
-		frameparse($line);
+		if(strpos($line, $callraw." R ")){
+			frameparse($line);
+			}
 		$lines--;
 	}
 device();	
