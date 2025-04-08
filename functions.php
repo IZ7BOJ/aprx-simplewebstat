@@ -141,296 +141,390 @@ function stationparse($frame) //function for parsing station information
 	}
 
 }
-/*
-function load($frame, $end)
+
+function miceDecode( $in )
+		{
+			if ( strlen( $in ) > 1 ) return false;
+			$v = ord( $in );
+			$r = array();
+
+			if ( ($v > 47 && $v < 58) || $v == 76 )
+			{
+				if ( $v == 76 ) $r['dig'] = '';
+				else $r['dig'] = $v-48;
+				$r['msg'] = '0';
+				$r['ns']  = 'S';
+				$r['off'] = 0;
+				$r['we']  = 'E';
+			}
+			if ( $v > 64 && $v < 76 )
+			{
+				if ( $v == 75 ) $r['dig'] = '';
+				else $r['dig'] = $v-65;
+				$r['msg'] = '1 Custom';
+				$r['ns']  = '';
+				$r['off'] = '';
+				$r['we']  = '';
+			}
+			if ( $v > 79 && $v < 91 )
+			{
+				if ( $v == 90 ) $r['dig'] = '';
+				else $r['dig'] = $v-80;
+				$r['msg'] = '1 Std';
+				$r['ns']  = 'N';
+				$r['off'] = 100;
+				$r['we']  = 'W';
+			}
+			return $r;
+		}
+
+
+function frameparse($frame) //inspired to https://github.com/geeojr/php-aprs
 {
-	global $framespermin;
-	global $time1;
-	global $time2;
-	if($end === 0)
-	{
-		$time1 = substr($frame, 0, 19);
-		$time1 = strtotime($time1);
-	} elseif($end === 1)
-	{
-		$time2 = substr($frame, 0, 19);
-		$time2 = strtotime($time2);
-		$framespermin = 20 / (($time2 - $time1) / 60);
-	}
-
-}
-*/
-function nmeatodec($data, $shift)
-{
-	$dec = 0;
-	$dec += ($data[$shift] * 10);
-	$dec += $data[1 + $shift];
-
-	$temp = 0;
-
-	$temp += ($data[2 + $shift] * 10);
-	$temp += $data[3 + $shift];
-
-	$temp += ($data[5 + $shift] / 10);
-	$temp += ($data[6 + $shift] / 100);
-
-	$temp /= 60;
-
-	$dec += $temp;
-
-	return $dec;
-}
-
-function mice_decode($dest, $info)
-{
-   //conversion of Mic-E posistion to DDMMmm format
-	global $declat;
-	global $declon;
-	$declat = 0;
-	$declon = 0;
-	$ghf = ord($dest[0]);
-
-    if($ghf <= 57) $declat += ($ghf - 48) * 100000;
-    else if(($ghf >= 65) && ($ghf <= 74)) $declat += ($ghf - 65) * 100000;
-    else if(($ghf >= 80) && ($ghf <= 89)) $declat += ($ghf - 80) * 100000;
-
-    $ghf = ord($dest[1]);
-    if($ghf <= 57) $declat += ($ghf - 48) * 10000;
-    else if(($ghf >= 65) && ($ghf <= 74)) $declat += ($ghf - 65) * 10000;
-    else if(($ghf >= 80) && ($ghf <= 89)) $declat += ($ghf - 80) * 10000;
-
-    $ghf = ord($dest[2]);
-    if($ghf <= 57) $declat += ($ghf - 48) * 1000;
-    else if(($ghf >= 65) && ($ghf <= 74)) $declat += ($ghf - 65) * 1000;
-    else if(($ghf >= 80) && ($ghf <= 89)) $declat += ($ghf - 80) * 1000;
-
-    $ghf = ord($dest[3]);
-    if($ghf <= 57)
-    {
-        $declat += ($ghf - 48) * 100;
-        $declat = $declat * (-1);
-    }
-    else if(($ghf >= 80) && ($ghf <= 89))
-    {
-        $declat += ($ghf - 80) * 100;
-    }
-
-    $looff = 0;
-
-    $ghf = ord($dest[4]);
-    if($ghf <= 57)
-    {
-        $declat += ($ghf - 48) * 10;
-        $looff = 0;
-    }
-    else if(($ghf >= 80) && ($ghf <= 89))
-    {
-        $declat += ($ghf - 80) * 10;
-        $looff = 100;
-    }
-
-    $lonneg = 0;
-
-    $ghf = ord($dest[5]);
-    if($ghf <= 57)
-    {
-        $declat += $ghf - 48;
-        $lonneg = 1;
-    }
-    else if(($ghf >= 80) && ($ghf <= 89))
-    {
-        $declat += $ghf - 80;
-        $lonneg = -1;
-    }
-
-    $ghf = ord($info[1]);
-    $ghf -= 28;
-    $ghf += $looff;
-    if(($ghf <= 189) && ($ghf >= 180)) $ghf -= 80;
-    else if(($ghf <= 199) && ($ghf >= 190)) $ghf -= 190;
-
-    $declon += ($ghf * 10000);
-
-    $ghf = ord($info[2]);
-    $ghf -= 28;
-    if($ghf >= 60) $ghf -= 60;
-
-    $declon += ($ghf * 100);
-
-    $ghf = ord($info[3]);
-    $ghf -= 28;
-    $declon += $ghf;
-
-
-    $declon = $declon * $lonneg;
-
-
-	//converting DDMMmm to DDdddddd
-	//latitude
-	$tt = 0;
-	$tt += (int)($declat / 10000);
-
-	$temp = ($declat % 10000) / 100;
-	$temp /= 60;
-
-	$declat = $tt + $temp;
-
-
-	//longtitude
-	$tt = 0;
-	$tt += (int)($declon / 10000);
-
-
-	$temp = ($declon % 10000) / 100;
-	$temp /= 60;
-
-	$declon = $tt + $temp;
-
-}
-
-
-function frameparse($frame)
-{
-	global $callraw;
 	global $scall;
 	global $posframefound;
-	global $otherframefound;
-	global $posframe;
-	global $otherframe;
 	global $lastpath;
 	global $noofframes;
 	global $symbol;
-	global $symboltab;
 	global $stationlat;
 	global $stationlon;
-	global $distance;
 	global $declat;
 	global $declon;
 	global $posdate;
 	global $postime;
 	global $comment;
 	global $status;
-	global $otherdate;
-	global $othertime;
-	global $mice;
+	global $distance;
 	global $bearing;
-	global $device;
+	global $station_type;
+	global $frame_type;
+	global $alt;
+	global $course;
+	global $speed;
+	global $telem;
 
-		$packet = substr($frame, 36); //get only frame, without interface call, date etc.
-		$aa = explode(">", $packet); //get the callsign
-		if(substr($aa[0],0,1)=="*") {
-		$aa[0]=str_replace("*","",$aa[0]);
-			}
-		if($aa[0] == $scall)
+	$packet = substr($frame, 36); //get only frame, without interface call, date etc.
+
+	$packet = str_replace("<0x1c>", chr(28), $packet); //replace unprintable characters written as <0xAA> with it's real value
+	$packet = str_replace("<0x1d>", chr(29), $packet); //replace unprintable characters written as <0xAA> with it's real value
+	$packet = str_replace("<0x1e>", chr(30), $packet); //replace unprintable characters written as <0xAA> with it's real value
+	$packet = str_replace("<0x1f>", chr(31), $packet); //replace unprintable characters written as <0xAA> with it's real value
+	$packet = str_replace("<0x7f>", chr(127), $packet); //replace unprintable characters written as <0xAA> with it's real value
+
+	$packet_exploded = explode(">", $packet); //get the callsign
+        $packet_call=$packet_exploded[0];
+	if(substr($packet_call,0,1)=="*") {
+		$packet_call=str_replace("*","",$packet_call);
+		}
+	if($packet_call == $scall)
+	{
+		$noofframes++;
+
+		if($posframefound) return; //if we have already position frame parsed, just skip it
+
+		$station_type = false;
+		$symbol = false;
+		$lat = false;
+		$lon = false;
+		$msg_to = false;
+		$msg = false;
+		$ack = false;
+		$comment = false;
+		$status = false;
+		$capabilities = false;
+		$kill = false;
+		$alt = false;
+		$course = false;
+		$speed = false;
+		$telem = false;
+
+		$posdate = substr($frame, 0, 10); //extract date
+		$postime = substr($frame, 11, 8); //extract time
+
+		$path = explode(":", $packet_exploded[1]); //take everything after station callsign and before info field (see bb[0])
+		$lastpath = $path[0];
+
+		$posframefound = 1; //newest position frame found
+
+		$src = substr( $packet , 0 , strpos( $packet , '>' ) );
+		$packet = substr( $packet , strlen($src)+1 );
+
+		$destination = substr( $packet , 0 , strpos( $packet , ',' ) );
+		$packet = substr( $packet , strlen($destination)+1 );
+
+		$path = substr( $packet , 0 , strpos( $packet , ':' ) );
+		$packet = substr( $packet , strlen($path)+1 );
+
+		$type = substr( $packet , 0 , 1 );
+		$packet = substr( $packet , 1 );
+		$m = false;
+		switch( $type )
 		{
+			case '!':
+				$t = 'position';
+				$frame_type = 'Position w/o timestamp';
+				$station_type = 'station';
+				break;
+			case '=':
+				$t = 'position';
+				$frame_type = 'Position w/o timestamp - msg capable';
+				$station_type = 'station';
+				$m = true;
+				break;
+			case '/':
+				$t = 'position_time';
+				$frame_type = 'Position w/ timestamp';
+				$station_type = 'station';
+				break;
+			case '@':
+				$t = 'position_time';
+				$frame_type = 'Position w/ timestamp - msg capable';
+				$station_type = 'station';
+				$m = true;
+				break;
+			case '>':
+				$t = 'status';
+				$frame_type = 'Status';
+				break;
+			case '<':
+				$t = 'capabilities';
+				$frame_type = 'Station Capabilities';
+				break;
+			case '#':
+			case '*':
+				$t = 'weather';
+				$frame_type = 'WX';
+				break;
+			case '_':
+				$t = 'weather';
+				$frame_type = 'WX w/o position';
+				break;
+			case '$':
+				$t = 'gps';
+				$frame_type = 'Raw GPS';
+				break;
+			case ')':
+				$t = 'item';
+				$frame_type = 'Item';
+				$station_type = 'item';
+				break;
+			case ';':
+				$t = 'object';
+				$frame_type = 'Object';
+				$station_type = 'object';
+				break;
+			case ':':
+				$t = 'message';
+				$frame_type = 'Message';
+				break;
+			case '`':
+				$t = 'mic-e';
+				$frame_type = 'Mic-E Data (current)';
+				break;
+			case "'":
+				$t = 'mic-e';
+				$frame_type = 'Mic-E Data (old/D-700)';
+				break;
+			default:
+				$t = '';
+				$frame_type = 'OTHER/UNKNOWN';
+		}
 
-			$noofframes++;
-			if($posframefound and $otherframefound) return;
-			$bb = explode(":", $packet,2); //get only info field, so everything after : separator
-
-			$bb = str_replace("<0x1c>", chr(28), $bb); //replace unprintable characters written as <0xAA> with it's real value
-			$bb = str_replace("<0x1d>", chr(29), $bb); //replace unprintable characters written as <0xAA> with it's real value
-			$bb = str_replace("<0x1e>", chr(30), $bb); //replace unprintable characters written as <0xAA> with it's real value
-			$bb = str_replace("<0x1f>", chr(31), $bb); //replace unprintable characters written as <0xAA> with it's real value
-			$bb = str_replace("<0x7f>", chr(127), $bb); //replace unprintable characters written as <0xAA> with it's real value
-
-			$dd = substr($bb[1], 0); //i have no idea, but i must do this, because without this there are some problems
-
-			if(($dd[0] === "@") or ($dd[0] === "!") or ($dd[0] === "=") or ($dd[0] === "/") or (ord($dd[0]) === 96) or (ord($dd[0]) === 39)) //if it's a frame with position or Mic-E position	
+		if ( $t == 'position' )
+		{
+			if ( is_numeric( substr( $packet , 0 , 1 ) ) )
 			{
+				// 3901.00N/09433.47WhPHG7330 W2, MOn-N RMC, mary.young@hcamidwest.com
+				$lat = intval(substr( $packet , 0 , 2 )) + substr( $packet , 2 , 5 )/60;
+				if ( substr( $packet , 7 , 1 ) == 'S' ) $lat = -$lat;
 
-				if($posframefound) return; //if we have already position frame parsed, just skip it
+				$lon = intval(substr( $packet , 9 , 3 )) + substr( $packet , 12 , 5 )/60;
+				if ( substr( $packet , 17 , 1 ) == 'W' ) $lon = -$lon;
 
+				$symbol = substr( $packet , 8 , 1 ).substr( $packet , 18 , 1 );
+				$comment = substr( $packet , 19 );
+			}
+			else
+			{ // /:\{s6T`U>R:G/A=001017 13.8V Jeremy kd0eav@clear-sky.net
+				$clat = substr( $packet , 1 , 4 );
+				$lat = 90 - ( (ord($clat[0])-33)*pow(91,3) + (ord($clat[1])-33)*pow(91,2) + (ord($clat[2])-33)*91 + ord($clat[3])-33 ) / 380926;
 
-				$posframe = $packet; //save whole posistion frame
+				$clon = substr( $packet , 5 , 4 );
+				$lon= -180 + ( (ord($clon[0])-33)*pow(91,3) + (ord($clon[1])-33)*pow(91,2) + (ord($clon[2])-33)*91 + ord($clon[3])-33 ) / 190463;
 
-				$posdate = substr($frame, 0, 10); //extract date
-				$postime = substr($frame, 11, 8); //extract time
-
-				$path = explode(">", $bb[0]); //take everything after station callsign and before info field (see bb[0])
-				$lastpath = $path[1]; //take only path part
-
-				$posframefound = 1; //newest position frame found
-
-				if((ord($dd[0]) === 96) or (ord($dd[0]) === 39)) //if it's a Mic-E frame
+				// check if we have sane values
+				if ( abs($lon) > 180 || abs($lat) > 90 )
 				{
-					$mice = 1;
+					$lon = false;
+					$lat = false;
+				}
 
-					$symboltab = $dd[8];
-					$symbol = $dd[7];
+				$symbol = substr( $packet , 0 , 1 ).substr( $packet , 9 , 1 );
 
-					$destaddr = explode(",", $aa[1]); //get destination address, which encodes latitude
-
-					mice_decode($destaddr[0], $bb[1]);
-
-					$comment = substr($bb[1], 9);
+				$cs = substr( $packet , 10 , 2 );
+				if ( substr( $cs , 0 , 1 ) != ' ' )
+				{
+					// TODO: figure out cOMPRessed course/speed or alt or range
+					$ctype = substr( $packet , 12 , 1 );
 
 				}
-				else //if it's a standard frame
-				{
-					$mice = 0;
-					if(($dd[7] === 'z')OR($dd[7] === '/')OR($dd[7] === 'h')) //if the positions contains timestamp
-					{
-						$symboltab = $dd[16];
-						$symbol = $dd[26];
-						$comment = substr($dd, 27);
-
-						$shft = 7;
-
-					} else
-					{
-						$symboltab = $dd[9];
-						$symbol = $dd[19];
-						$comment = substr($dd, 20);
-						$shft = 0;
-					 }
-
-					//convert NMEA to decimal degrees
-					$declat = nmeatodec($dd, 1 + $shft);
-					if($dd[8 + $shft] == 'S') $declat *= -1;
-					$declon = nmeatodec($dd, 11 + $shft);
-					if($dd[18 + $shft] == 'W') $declon *= -1;
-
-
-				}
-
-				//haversine formula for distance calculation
-				$latFrom = deg2rad($stationlat);
-				$lonFrom = deg2rad($stationlon);
-				$latTo = deg2rad($declat);
-				$lonTo = deg2rad($declon);
-
-				$latDelta = $latTo - $latFrom;
-				$lonDelta = $lonTo - $lonFrom;
-
-				$bearing = rad2deg(atan2(sin($lonDelta)*cos($latTo), cos($latFrom)*sin($latTo)-sin($latFrom)*cos($latTo)*cos($latDelta)));
-				if($bearing < 0) $bearing += 360;
-
-				$angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
-				cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
-				$distance = round($angle * 6371, 2); //gives result in km rounded to 2 digits after comma
-
-				$declat = round($declat, 5);
-				$declon = round($declon, 5);
-				$bearing = round($bearing, 1);
-
+				$comment = substr( $packet , 13 );
 			}
-//			else
-			else if(($dd[0] === ">") or ($dd[0] === "<") or ($dd[0] === "{")) //if it's a status or beacon frame
+		}
+		if ( $t == 'position_time' )
+		{
+			// 202051z3842.05N/09317.07W_308/009g017t026r000p000P000h75b10173L021.DsVP
+			$lat = intval(substr( $packet , 7 , 2 )) + substr( $packet , 9 , 5 )/60;
+			if ( substr( $packet , 15 , 1 ) == 'S' ) $lat = -$lat;
+
+			$lon = intval(substr( $packet , 16 , 3 )) + substr( $packet , 19 , 5 )/60;
+			if ( substr( $packet , 24 , 1 ) == 'W' ) $lon = -$lon;
+
+			$symbol = substr( $packet , 15 , 1 ).substr( $packet , 25 , 1 );
+			$comment = substr( $packet , 26 );
+		}
+		if ( $t == 'object' )
+		{ // 146.79-KC*202142z3917.54N/09434.49WrKC Northland ARES / Clay Co ARC T107.2
+
+			$lat = intval(substr( $packet , 17 , 2 )) + substr( $packet , 19 , 5 )/60;
+			if ( substr( $packet , 25 , 1 ) == 'S' ) $lat = -$lat;
+
+			$lon = intval(substr( $packet , 26 , 3 )) + substr( $packet , 29 , 5 )/60;
+			if ( substr( $packet , 34 , 1 ) == 'W' ) $lon = -$lon;
+
+			$symbol = substr( $packet , 25 , 1 ).substr( $packet , 35 , 1 );
+			$comment = substr( $packet , 36 );
+		}
+		if ( $t == 'item' )
+		{ // 146.79-KC!3917.54N/09434.49WrKC Northland ARES / Clay Co ARC T107.2
+
+			$offset = strpos( $packet , '!' );
+			if ( $offset === false )
 			{
-				if($otherframefound) return; //if we have already status frame parsed, just skip it
-
-				$otherframe = $packet; //save whole status frame
-
-				$status = substr($dd, 1);
-
-				$otherdate = substr($frame, 0, 10); //extract date
-				$othertime = substr($frame, 11, 8); //extract time
-
-				$otherframefound = 1; //newest beacon frame found
+				$offset = strpos( $packet , '_' );
+				if ( $offset === false ) return false;
+				else $kill = true;
 			}
 
-	} //close if aa=call
+			$lat = intval(substr( $packet , $offset+1 , 2 )) + substr( $packet , $offset+3 , 5 )/60;
+			if ( substr( $packet , $offset+8 , 1 ) == 'S' ) $lat = -$lat;
+
+			$lon = intval(substr( $packet , $offset+10 , 3 )) + substr( $packet , $offset+13 , 5 )/60;
+			if ( substr( $packet , $offset+18 , 1 ) == 'W' ) $lon = -$lon;
+
+			$symbol = substr( $packet , $offset+9 , 1 ).substr( $packet , $offset+19 , 1 );
+			$comment = substr( $packet , $offset+20 );
+		}
+		if ( $t == 'message' )
+		{
+			$msg_to = trim(substr( $packet , 0 , 9 ));
+			if ( substr( $msg_to , 0 , 3 ) == 'BLN' )
+			{
+				if ( is_numeric(substr( $msg_to , 3 , 1 ) ) )
+					$frame_type = 'Bulletin';
+				else
+					$frame_type = 'Announcement';
+				$msg = substr( $packet , 10 );
+			}
+			else
+			{
+				$pos = strpos( $packet , '{' );
+				if ( $pos !== false ) $ack = substr( $packet , $pos+1 );
+				else $ack = '';
+				$msg = substr( $packet , 10 , -(strlen($ack)+1) );
+
+				if ( substr( $msg , 0 , 3 ) == 'ack' ) $frame_type = 'Message Acknowledge';
+				if ( substr( $msg , 0 , 3 ) == 'rej' ) $frame_type = 'Message Reject';
+				if ( $frame_type != 'Message' ) $ack = substr( $msg , 3 );
+			}
+		}
+		if ( $t == 'mic-e' )
+		{
+			for( $i=0 ; $i<7 ; $i++ )
+				$lat_dig[$i] = miceDecode(substr( $destination , $i , 1 ));
+
+			$lat = intval($lat_dig[0]['dig'].$lat_dig[1]['dig'])
+							+ ($lat_dig[2]['dig'].$lat_dig[3]['dig'].'.'.$lat_dig[4]['dig'].$lat_dig[5]['dig'])/60;
+			if ( $lat_dig[3]['ns'] == 'S' ) $lat = -$lat;
+
+			$lon = (ord(substr( $packet , 0 , 1 ))-28) + $lat_dig[4]['off']
+							+ ((ord(substr( $packet , 1 , 1 ))-28) +
+								((ord(substr( $packet , 2 , 1 ))-28) * .01) ) /60;
+			if ( $lat_dig[5]['we'] == 'W' ) $lon = -$lon;
+
+			$symbol = substr( $packet , 7 , 1 ).substr( $packet , 6 , 1 );
+			$comment = substr( $packet , 8 );
+
+			// not sure on the format on some packets; here we're just assuming it's telem if there's more than a couple commas
+			$telem = explode( ',' , $comment );
+			if ( count( $telem ) < 2 ) $telem = false;
+
+			// check if the first telem has some unknown data in it - not sure what this is yet.
+			if ( is_array( $telem ) )
+				if ( substr( $telem[0] , 3 , 1 ) == '}' )
+					$telem[0] = substr( $telem[0] , 4 );
+
+		}
+
+		// check if we have course/speed data
+		if ( substr( $comment , 3 , 1 ) == '/' )
+		{
+			$course = intval(substr( $comment , 0 , 3 ));
+			if ( $course > 360 ) $course = false;
+
+			$speed = substr( $comment , 4 , 3 ) * 1.152; //knots to Mph
+		}
+
+		if ( strpos( $comment , '/A=' ) !== false )
+		{
+			$alt = intval(substr( $comment , strpos( $comment , '/A=' )+3,6));
+			//$comment = substr( $packet , 8 , strpos( $comment , '/A=' ) ) . substr( $packet , strpos( $comment , '/A=' )+22 );
+			if ( $alt == 0 ) $alt = false;
+		}
+
+		// http://he.fi/doc/aprs-base91-comment-telemetry.txt
+		if ( strpos( $comment , '|' ) !== false )
+		{
+			$telem_string = substr( $comment , strpos( $comment , '|' ) + 1 , strrpos( $comment , '|' )-1 );
+
+			for( $i=0 ; $i < strlen( $telem_string )/2 ; $i++ )
+			{
+				$telem[] = (ord($telem_string[$i*2])-33)*pow(91,1) + (ord($telem_string[($i*2)+1])-33);
+			}
+			//$comment = '';
+		}
+
+		if ( $t == 'status' )
+			$status = $packet;
+
+		if ( $t == 'capabilities' )
+			$capabilities = $packet;
+
+		//fine parte incollata
+
+		//haversine formula for distance calculation
+
+		$latFrom = deg2rad($stationlat);
+		$lonFrom = deg2rad($stationlon);
+		$latTo = deg2rad($lat);
+		$lonTo = deg2rad($lon);
+
+		$latDelta = $latTo - $latFrom;
+		$lonDelta = $lonTo - $lonFrom;
+
+		$bearing = rad2deg(atan2(sin($lonDelta)*cos($latTo), cos($latFrom)*sin($latTo)-sin($latFrom)*cos($latTo)*cos($latDelta)));
+		if($bearing < 0) $bearing += 360;
+
+		$angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
+		cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
+		$distance = round($angle * 6371, 2); //gives result in km rounded to 2 digits after comma
+
+		$declat = round($lat, 5);
+		$declon = round($lon, 5);
+		$bearing = round($bearing, 1);
+
+
+	}
 
 } //close frameparse function
 
@@ -501,126 +595,75 @@ return $txframespermin;
 }
 
 function device() {
-	global $mice;
-	global $comment;
 	global $lastpath;
 	global $device;
+	global $frame_type;
+	global $comment;
+	global $station_class;
 
-	$tocall = substr($lastpath,0,strpos($lastpath,",")); //cut destination call from lastpath
-	if ($mice==0) {
+	$match=false;
+	$device=false;
+	$station_class=false;
 
-	//standard device parsing
-	$tocfile = file("./tocalls.txt"); //read log file
-	$linesintocfile = count($tocfile);
-	$match=0;
-	$w=0; //number of wildcards. Try exact match first
-	while (($match!==1)AND($w<=strlen($tocall)-3)){ //3 wildcards for 6characters tocall, 2wilds for 5characters and 1wild for 4character
-		$toclines=0;
-		$tocall2=substr($tocall,0,strlen($tocall)-$w); //start without wilds, then replace last part with wilds
-				while ($toclines < $linesintocfile) {
-						$tocline=$tocfile[$toclines];
-						$toc = substr($tocline,6,strpos(substr($tocline,6),"  "));//cut tocall from file line
-						//compare destination call + wilds with all file lines. Wildcards can be "n","x","y"
-						if((strpos($toc, $tocall2.str_repeat("x",$w)) !== false)OR(strpos($toc, $tocall2.str_repeat("n",$w))!== false)OR(strpos($toc, $tocall2.str_repeat("y",$w)) !== false)) {								$match=1;
-								break; //exit of match
-								}
-						$toclines++; //otherwise go to next file line
-						}
-		$w++;
+	//$tocalls_json=json_decode(file_get_contents("tocalls.pretty.json"));
+	$tocalls_json=json_decode(utf8_encode(file_get_contents("https://github.com/aprsorg/aprs-deviceid/raw/refs/heads/main/generated/tocalls.pretty.json")));
+	if ($frame_type=='Mic-E Data (current)') { //mic-e
+		$tocall=substr($comment,strlen($comment)-3,2); // last character is space, must be deleted
+       		if (isset($tocalls_json->mice->$tocall)) { //if key exists
+			$device=$tocalls_json->mice->$tocall->vendor." ".$tocalls_json->mice->$tocall->model; //output is concatenated string: model-vendor
+			if (isset($tocalls_json->mice->$tocall->class))
+				$station_class=$tocalls_json->mice->$tocall->class;
+			$match=True;
 		}
-	if ($match==1) {
-		if (strpos($tocall,"APRX")!== 0) { //special case for APRX
-			$device=substr($tocline, 14, strlen($tocline)-14);//if it's not aprx, print device description contained in the file
+	} elseif ($frame_type=='Mic-E Data (old/D-700)') { //mic-e legacy
+		$tocall=substr($comment,0,1).substr($comment,strlen($comment)-2,1); // in legacy devices, take last and first character of the comment
+		if (isset($tocalls_json->micelegacy->$tocall)) { //try match with both character first
+			$device=$tocalls_json->micelegacy->$tocall->vendor." ".$tocalls_json->micelegacy->$tocall->model;
+			if (isset($tocalls_json->micelegacy->$tocall->class))
+				$station_class=$tocalls_json->micelegacy->$tocall->class;
+			$match=True;
+		} else { // try only first character match
+			$tocall=substr($comment,0,1);
+			if (isset($tocalls_json->micelegacy->$tocall)) {
+                        	$device=$tocalls_json->micelegacy->$tocall->vendor." ".$tocalls_json->micelegacy->$tocall->model;
+				if (isset($tocalls_json->micelegacy->$tocall->class))
+					$station_class=$tocalls_json->micelegacy->$tocall->class;
+                        	$match=True;
+			}
 		}
-		else {
-				if(substr($tocall,4,2)>40) {
-				$device="APRSMax";
+	} else { // not mic-e
+		$tocall = substr($lastpath,0,strpos($lastpath,",")); //cut destination call from lastpath
+		$w=0; //number of wildcards. Try exact match first
+		while ($w<=strlen($tocall)-3){ //3 wildcards for 6characters tocall, 2wilds for 5characters and 1wild for 4character
+			$tocall_wild=substr($tocall,0,strlen($tocall)-$w).str_repeat("?",$w); //start without wilds, then replace last part with "?"
+			if (isset($tocalls_json->tocalls->$tocall_wild)) { //compare destination call + wilds with json file
+				$device=$tocalls_json->tocalls->$tocall_wild->vendor." ".$tocalls_json->tocalls->$tocall_wild->model;
+				if (isset($tocalls_json->tocalls->$tocall->class))
+					$station_class=$tocalls_json->tocalls->$tocall_wild->class;
+				$match=True; //set match flag
+				break; //exit of match
 				}
-				else {
-				$device="APRX".substr($tocall,4,1).".".substr($tocall,5,1);
-				}
-
+			$tocall_wild=substr($tocall,0,strlen($tocall)-$w).str_repeat("*",$w); //start without wilds, then replace last part with "*"
+			if (isset($tocalls_json->tocalls->$tocall_wild)) { //compare destination call + wilds with json file
+                                $device=$tocalls_json->tocalls->$tocall_wild->vendor." ".$tocalls_json->tocalls->$tocall_wild->model;
+				if (isset($tocalls_json->toclass->$tocall->class))
+					$station_class=$tocalls_json->tocalls->$tocall_wild->class;
+                                $match=True; //set match flag
+                                break; //exit of match
+                                }
+                        $tocall_wild=substr($tocall,0,strlen($tocall)-$w).str_repeat("n",$w); //start without wilds, then replace last part with "n"
+                        if (isset($tocalls_json->tocalls->$tocall_wild)) { //compare destination call + wilds with json file
+                                $device=$tocalls_json->tocalls->$tocall_wild->vendor." ".$tocalls_json->tocalls->$tocall_wild->model;
+				if (isset($tocalls_json->tocalls->$tocall->class))
+					$station_class=$tocalls_json->tocalls->$tocall_wild->class;
+                                $match=True; //set match flag
+                                break; //exit of match
+                                }
+			$w++;
 		}
-	}
-
-
-	//check special cases at the end (wildcards in the middle of tocall)
-	if (substr($tocall,0,2).substr($tocall,5,1)=="APD") {
-		$device="Painter Engineering uSmartDigi D-Gate DSTAR Gateway";
-		$match=1;
-		}
-	if (substr($tocall,0,2).substr($tocall,5,1)=="APU") {
-		$device="Painter Engineering uSmartDigi D-Gate Digipeater";
-		$match=1;
-		}
-	if ($match==0) {
+	} //closes not mic-e case
+	if ($match==false) {
 		$device="Unknown";
 		}
-
-	}// close non mic-e
-	else  {
-	// mice non legacy
-	$micefile = file("./mice.txt"); //read log file
-	$linesinmicefile = count($micefile);
-	$match=0;
-	$micelines=0;
-
-	$micesymbol=substr($comment,strlen($comment)-3,2); // last character is space, must be deleted
-	while ($micelines < $linesinmicefile) { //read line by line
-					$miceline = $micefile[$micelines];
-					if (strpos(substr($miceline,0,2), $micesymbol)!==false) {
-							$match=1;
-							break;
-							}
-					$micelines++;
-					}
-
-	if ($match==1) {
-			$device=(substr($miceline, 3, strlen($miceline)-3));
-			}
-	else {
-			// mice legacy
-
-			$miceoldfile = file("./miceold.txt"); //read log file
-			$linesinmiceoldfile = count($miceoldfile);
-			$match=0;
-			$miceoldlines=0;
-			$miceold1=substr($comment,0,1);
-			$miceold2=substr($comment,strlen($comment)-2,1);
-
-			//match exact
-			while ($miceoldlines < $linesinmiceoldfile) { //read line by line
-							$miceoldline = $miceoldfile[$miceoldlines];
-									if ((strpos(substr($miceoldline,0,1), $miceold1)!==false)AND(strpos(substr($miceoldline,2,1), $miceold2)!==false)) {
-									$match=1;
-									break;
-									}
-							$miceoldlines++;
-							}
-
-			if ($match==0){
-
-			// match 1st char
-			$miceoldlines=0;
-			while ($miceoldlines < $linesinmiceoldfile) { //read line by line
-							$miceoldline = $miceoldfile[$miceoldlines];
-							if ((strpos(substr($miceoldline,0,1), $miceold1)!==false)) {
-									$match=1;
-									break;
-									}
-							$miceoldlines++;
-							}
-			}
-
-			if ($match==1) {
-					$device=(substr($miceoldline, 4, strlen($miceoldline)-4));
-					}
-			else {
-			$device="Unknown";
-			}
-
-		}// close mic-e legacy
-	}//close mic-e non legacy
-} //close function
-
+} //closes device() function
 ?>
