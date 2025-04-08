@@ -33,11 +33,7 @@ $noofframes = 0;
 $posdate = "";
 $postime = "";
 
-$otherdate = "";
-$othertime = "";
-
 $posframe = "";
-$otherframe = "";
 
 $lastpath = "";
 
@@ -110,7 +106,7 @@ Show details of station: <input type="text" name="getcall" <?php if(isset($_GET[
 <?php
 if(isset($_GET['getcall']) && ($_GET['getcall'] != ""))
 {
-	if(($posframefound == 0) && ($otherframefound == 0))
+	if($posframefound == 0)
 	{
 		echo '<font size="6">No frames found for station <b>'.$scall.'</b>.</font>';
 	}
@@ -119,33 +115,40 @@ if(isset($_GET['getcall']) && ($_GET['getcall'] != ""))
 		echo '<b><font color="blue" size="8">'.$scall.'</font></b>';
 		echo '<br><a href="https://aprs.fi/?call='.$scall.'" target="_blank">Show on aprs.fi</a><br><br>';
 		echo '<b>Frames heard: </b><a href="frames.php?getcall='.$_GET['getcall'].'" target="_blank">'.$noofframes.'</a><br>';
-		if($posframefound)
-		{
-			echo '<br><br><font color="blue"><b>Last position frame heard:</b> '.$posdate.' '.$postime.' GMT (';
-			$dc = time() -date('Z') - strtotime($posdate.' '.$postime);
-			echo (int)($dc / 86400).'d '.(int)(($dc % 86400) / 3600).'h '.(int)(($dc % 3600) / 60).'m '.(int)($dc % 60).'s ago)</font>';
-			echo '<br><font color="red"><b>Station position: </b>'.$declat.', '.$declon.' - <b>'.$distance.' km '.$bearing.'° from your location</b></font>';
-			echo '<br><font color="green"><b>Frame comment: </b>'.$comment.'</font>';
-			echo '<br><br><b>Frame type:</b> ';
-			if($mice) echo 'Mic-E compressed frame'; else echo 'Uncompressed frame';
-			echo '<br><b>Station symbol:</b> '.$symboltab.$symbol;
-			echo '<br><b>Frame path:</b> '.$scall.'>'.$lastpath;
-			echo '<br><b>Device:</b> '.$device;
+		echo '<br><br><font color="blue"><b>Last position frame heard:</b> '.$posdate.' '.$postime.' GMT (';
+		$dc = time() -date('Z') - strtotime($posdate.' '.$postime);
+		echo (int)($dc / 86400).'d '.(int)(($dc % 86400) / 3600).'h '.(int)(($dc % 3600) / 60).'m '.(int)($dc % 60).'s ago)</font>';
+		if ($frame_type !== 'Station Capabilities' and $frame_type !=='Status' and $frame_type !== 'Bulletin' and $frame_type !== 'Announcement' and $frame_type !== 'Message' and $frame_type !== 'OTHER/UNKNOWN' and $declat !== 0.0 and $declon !== 0.0) {
+			echo '<br><font color="red"><b>Station position: </b>'.$declat.'°, '.$declon.'° - <b>'.$distance.' km '.$bearing.'° from your location</b></font>';
 		}
-
-		if($otherframefound)
-		{
-			echo '<br><br><b>Last status frame heard:</b> '.$otherdate.' '.$othertime.' (';
-			$dc = time() - strtotime($otherdate.' '.$othertime);
-			echo (int)($dc / 86400).'d '.(int)(($dc % 86400) / 3600).'h '.(int)(($dc % 3600) / 60).'m '.(int)($dc % 60).'s ago)';
-			echo '<br><b>Status: </b>'.$status;
+		echo '<br><font color="green"><b>Frame comment: </b>'.$comment.'</font>';
+		echo '<br><br><b>Frame type: </b>'.$frame_type;
+		if ($station_type !== false) {
+			echo '<br><b>Station type:</b>'.$station_type;
 		}
+		if (($station_class !== false) and ($station_class !== ' ')) {
+                        echo '<br><b>Station class:</b>'.$station_class;
+                }
+		echo '<br><b>Station symbol:</b> '.$symbol;
+		echo '<br><b>Frame path:</b> '.$scall.'>'.$lastpath;
+		echo '<br><b>Device:</b> '.$device;
+		if ($alt !== false) {
+                        echo '<br><b>Altitude: </b>'.$alt.'Km';
+                }
+		if ($speed !== false) {
+                        echo '<br><b>Speed: </b>'.$speed.'Km/h';
+                }
+		if ($course !== false) {
+                        echo '<br><b>Course: </b>'.$course.'°';
+                }
+		if ($telem !== false) {
+                        echo '<br><b>Telemetry: </b>'.$telem;
+                }
 
 	}
-
 }
 
-}else {
+}else { //Polski language
 ?>
 <!DOCTYPE html>
 <html>
@@ -185,7 +188,7 @@ Pokaż szczegóły stacji: <input type="text" name="getcall" <?php if(isset($_GE
 
 if(isset($_GET['getcall']) && ($_GET['getcall'] != ""))
 {
-	if(($posframefound == 0) && ($otherframefound == 0))
+	if ($posframefound == 0)
 	{
 		echo '<font size="6">Brak odebranych ramek od stacji <b>'.$scall.'</b>.</font>';
 	}
@@ -194,27 +197,35 @@ if(isset($_GET['getcall']) && ($_GET['getcall'] != ""))
 		echo '<b><font color="blue" size="8">'.$scall.'</font></b>';
 		echo '<br><a href="https://aprs.fi/?call='.$scall.'" target="_blank">Pokaż na aprs.fi</a><br><br>';
 		echo '<b>Frames heard: </b><a href="frames.php?getcall='.$_GET['getcall'].'" target="_blank">'.$noofframes.'</a><br>';
-		if($posframefound)
-		{
-			echo '<br><br><font color="blue"><b>Ostatnia ramka z pozycją:</b> '.$posdate.' '.$postime.' GMT (';
-			$dc = time() -date('Z') - strtotime($posdate.' '.$postime);
-			echo (int)($dc / 86400).'d '.(int)(($dc % 86400) / 3600).'h '.(int)(($dc % 3600) / 60).'m '.(int)($dc % 60).'s ago)</font>';
-			echo '<br><font color="red"><b>Pozycja: </b>'.$declat.', '.$declon.' - <b>'.$distance.' km '.$bearing.'° od twojej lokalizacji</b></font>';
-			echo '<br><font color="green"><b>Komentarz: </b>'.$comment.'</font>';
-			echo '<br><br><b>Typ ramki:</b> ';
-			if($mice) echo 'Ramka skompresowana Mic-E'; else echo 'Ramka nieskompresowana';
-			echo '<br><b>Symbol:</b> '.$symboltab.$symbol;
-			echo '<br><b>Ścieżka:</b> '.$scall.'>'.$lastpath;
-			echo '<br><b>Urządzenie:</b> '.$device;
+		echo '<br><br><font color="blue"><b>Ostatnia ramka z pozycją:</b> '.$posdate.' '.$postime.' GMT (';
+		$dc = time() -date('Z') - strtotime($posdate.' '.$postime);
+		echo (int)($dc / 86400).'d '.(int)(($dc % 86400) / 3600).'h '.(int)(($dc % 3600) / 60).'m '.(int)($dc % 60).'s ago)</font>';
+		if ($frame_type !== 'Station Capabilities' and $frame_type !=='Status' and $frame_type !== 'Bulletin' and $frame_type !== 'Announcement' and $frame_type !== 'OTHER/UNKNOWN' and $declat !== 0.0 and $declon !== 0.0) {
+			echo '<br><font color="red"><b>Pozycja: </b>'.$declat.'°, '.$declon.'° - <b>'.$distance.' km '.$bearing.'° od twojej lokalizacji</b></font>';
 		}
-
-		if($otherframefound)
-		{
-			echo '<br><br><b>Ostatnia ramka statusu:</b> '.$otherdate.' '.$othertime.' (';
-			$dc = time() - strtotime($otherdate.' '.$othertime);
-			echo (int)($dc / 86400).'d '.(int)(($dc % 86400) / 3600).'h '.(int)(($dc % 3600) / 60).'m '.(int)($dc % 60).'s ago)';
-			echo '<br><b>Status: </b>'.$status;
-		}
+                if ($station_type !== false) {
+                        echo '<br><b>Typ stacja:</b> '.$station_type;
+                }
+                if (($station_class !== false) and ($station_class !== ' ')) {
+                        echo '<br><b>Klasa stacja:</b> '.$station_class;
+                }
+		echo '<br><font color="green"><b>Komentarz: </b>'.$comment.'</font>';
+		echo '<br><br><b>Typ ramki:</b> '.$frame_type;
+		echo '<br><b>Symbol:</b> '.$symbol;
+		echo '<br><b>Ścieżka:</b> '.$scall.'>'.$lastpath;
+		echo '<br><b>Urządzenie:</b> '.$device;
+                if ($alt !== false) {
+                        echo '<br><b>Wysokość: </b>'.$alt.'Km';
+                }
+                if ($speed !== false) {
+                        echo '<br><b>Prędkość: </b>'.$speed.'Km/h';
+                }
+                if ($course !== false) {
+                        echo '<br><b>Kierunek: </b>'.$course.'°';
+                }
+                if ($telem !== false) {
+                        echo '<br><b>Telemtry: </b>'.$telem;
+                }
 
 	}
 
@@ -222,7 +233,7 @@ if(isset($_GET['getcall']) && ($_GET['getcall'] != ""))
 
 
 
-}
+} //close Polski language
 ?>
 <br><br><br><br><br><br><br><br><br><br><br><br><br><br>
 <center><a href="https://github.com/sq8vps/aprx-simplewebstat" target="_blank">APRX Simple Webstat version <?php echo $asw_version; ?></a> by Peter SQ8VPS and Alfredo IZ7BOJ</center>
