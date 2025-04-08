@@ -46,21 +46,30 @@ if(isset($_GET['getcall']) and ($_GET['getcall'] !== ""))
                 $line = $logfile[$b];
                 if(strpos($line, $callraw." R "))
                 {
-                        $statcall = explode(">", $line); //odetnij wszystko za znakiem
-                        $statcall = substr($statcall[0], strpos($statcall[0], $callraw." R ") + strlen($callraw." R ")); //obetnij linie do miejsca, gdzie jest znak
+                        $statcall = explode(">", $line);
+                        $statcall = substr($statcall[0], strpos($statcall[0], $callraw." R ") + strlen($callraw." R ")); //cut everything off after the sign
                         if($statcall == $scall)
                         {
                                 $frames[] = str_replace($callraw." R ", "&nbsp;&nbsp;&nbsp;", $line);
                         }
                 }
 
-                if(strpos($line, $callraw." d "))
+                elseif(strpos($line, $callraw." d *"))
                 {
                         $statcall = explode(">", $line);
                         $statcall = substr($statcall[0], strpos($statcall[0], $callraw." d *") + strlen($callraw." d *"));
                         if($statcall == $scall)
                         {
                                 $frames[] = str_replace($callraw." d *", "&nbsp;&nbsp;&nbsp;", $line);
+                        }
+                }
+		elseif(strpos($line, $callraw." d "))
+                {
+                        $statcall = explode(">", $line);
+                        $statcall = substr($statcall[0], strpos($statcall[0], $callraw." d ") + strlen($callraw." d "));
+                        if($statcall == $scall)
+                        {
+                                $frames[] = str_replace($callraw." d ", "&nbsp;&nbsp;&nbsp;", $line);
                         }
                 }
                 $b++;
@@ -104,6 +113,12 @@ if(isset($_GET['getcall']) and ($_GET['getcall'] !== ""))
         array_multisort($frames, SORT_DESC);
         for($o = 0; $o < count($frames); $o++)
         {
+        	$frames[$o] = str_replace("<0x1c>", chr(28), $frames[$o]); //replace unprintable characters written as <0xAA> with it's real value
+	        $frames[$o] = str_replace("<0x1d>", chr(29), $frames[$o]); //replace unprintable characters written as <0xAA> with it's real value
+        	$frames[$o] = str_replace("<0x1e>", chr(30), $frames[$o]); //replace unprintable characters written as <0xAA> with it's real value
+	        $frames[$o] = str_replace("<0x1f>", chr(31), $frames[$o]); //replace unprintable characters written as <0xAA> with it's real value
+        	$frames[$o] = str_replace("<0x7f>", chr(127), $frames[$o]); //replace unprintable characters written as <0xAA> with it's real value
+
                 echo $frames[$o]."<br>";
         }
 }
