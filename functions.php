@@ -606,7 +606,7 @@ function device() {
 	$station_class=false;
 
 	//$tocalls_json=json_decode(file_get_contents("tocalls.pretty.json"));
-	$tocalls_json=json_decode(utf8_encode(file_get_contents("https://github.com/aprsorg/aprs-deviceid/raw/refs/heads/main/generated/tocalls.pretty.json")));
+	$tocalls_json=json_decode(utf8_encode(file_get_contents("https://aprs-deviceid.aprsfoundation.org/tocalls.pretty.json")));
 	if ($frame_type=='Mic-E Data (current)') { //mic-e
 		$tocall=substr($comment,strlen($comment)-3,2); // last character is space, must be deleted
        		if (isset($tocalls_json->mice->$tocall)) { //if key exists
